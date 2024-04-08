@@ -16,22 +16,27 @@ module Mastermind
 
     def play
       @players[0].choose_role
-      @players[1].randomize_secret_code if @players[0].role == ROLES[1]
-      loop do
-        @players[0].guess_colors(@players[0].guess)
-        if correct_guess?
-          puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
-          return
-        elsif @guesses_remaining == 0
-          puts "Game over. You ran out of guesses(#{@tries})."
-          puts "The code was #{@players[1].secret_code}"
-          return
-        else
-          give_guess_result
-          @players[1].give_clue(@players[1].secret_code, @players[0].guess)
-          @players[0].guess = []
-          @players[1].clue = []
+      if @players[0].role == ROLES[1]
+        @players[1].randomize_secret_code 
+        loop do
+          @players[0].guess_colors(@players[0].guess)
+          if correct_guess?
+            puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
+            return
+          elsif @guesses_remaining == 0
+            puts "Game over. You ran out of guesses(#{@tries})."
+            puts "The code was #{@players[1].secret_code}"
+            return
+          else
+            give_guess_result
+            @players[1].give_clue(@players[1].secret_code, @players[0].guess)
+            @players[0].guess = []
+            @players[1].clue = []
+          end
         end
+      else
+        @players[0].build_secrect_code(@players[0].secret_code)
+        p @players[0].secret_code 
       end
     end
 
@@ -61,22 +66,29 @@ module Mastermind
 
   class HumanPlayer < Player
     def choose_role
-      puts "Choose a role: #{ROLES}"
-      begin
-        role = gets.chomp
-        raise unless ROLES.include?(role)
-      rescue StandardError
-        puts 'Invalid input! Try again...'
-      else 
-        @game.players[0].role = role
-        @game.players[1].role = role == ROLES[0] ? ROLES[1] : ROLES[0]
-      end
+      loop do
+        puts "Choose a role: #{ROLES}"
+        begin
+          role = gets.chomp
+          raise unless ROLES.include?(role)
+        rescue StandardError
+          puts 'Invalid input! Try again...'
+        else 
+          @game.players[0].role = role
+          @game.players[1].role = role == ROLES[0] ? ROLES[1] : ROLES[0]
+          break
+        end
+      end 
     end
 
     def guess_colors(arr)
       build_color_combo(arr)
       @game.tries += 1
       @game.guesses_remaining -= 1
+    end
+
+    def build_secrect_code(arr)
+      build_color_combo(arr)
     end
 
     private

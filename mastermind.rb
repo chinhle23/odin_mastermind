@@ -18,7 +18,7 @@ module Mastermind
       @players[0].choose_role
       @players[1].randomize_secret_code if @players[0].role == ROLES[1]
       loop do
-        @players[0].guess_colors
+        @players[0].guess_colors(@players[0].guess)
         if correct_guess?
           puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
           return
@@ -73,23 +73,29 @@ module Mastermind
       end
     end
 
-    def guess_colors
+    def guess_colors(arr)
+      build_color_combo(arr)
+      @game.tries += 1
+      @game.guesses_remaining -= 1
+    end
+
+    private
+
+    def build_color_combo(arr)
       i = 1
       loop do
-        puts "Possible colors: #{COLORS}\nGuess a color for position #{i}"
+        puts "Possible colors: #{COLORS}\nChoose a color for position #{i}"
         begin
-          guess = gets.chomp
-          raise unless COLORS.include?(guess)
+          choice = gets.chomp
+          raise unless COLORS.include?(choice)
         rescue StandardError
           puts 'Invalid input! Try again...'
         else 
-          @guess.push(guess)
+          arr.push(choice)
           i += 1
           break if i == 5
         end
       end
-      @game.tries += 1
-      @game.guesses_remaining -= 1
     end
   end
 

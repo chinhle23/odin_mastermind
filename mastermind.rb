@@ -38,8 +38,8 @@ module Mastermind
         end
       else
         @players[0].build_secrect_code(@players[0].secret_code)
-        COLORS.each_index do |i|
-          @players[1].guess_colors(@players[0].secret_code, @players[1].guess, @players[0].previous_clue, COLORS[i])
+        loop do
+          @players[1].guess_colors(@players[0].secret_code, @players[1].guess, @players[0].previous_clue)
           if computer_correct_guess?
             puts "Computer guessed correctly (#{@players[0].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
             return
@@ -176,28 +176,33 @@ module Mastermind
       end
     end
 
-    def guess_colors(secrect_code, guess, clue, color)
-      build_color_combo(secrect_code, guess, clue, color)
+    def guess_colors(secrect_code, guess, clue)
+      build_color_combo(secrect_code, guess, clue)
       @game.tries += 1
       @game.guesses_remaining -= 1
     end
 
     private
 
-    def build_color_combo(secrect_code, guess, clue, color)
+    def build_color_combo(secrect_code, guess, clue)
       if clue == []
-        4.times do 
-          guess.push(COLORS[0])
-        end
+        2.times { guess.push(COLORS[0]) }
+        2.times { guess.push(COLORS[1]) }
       else  
         clue.each_index do |i|
           if clue[i] == "O"
             guess[i] = secrect_code[i]
+          elsif clue[i] == "C"
+            clue.each_index do |j|
+              if clue[j] != "O" && guess[j] != guess[i]
+                guess[j] = guess[i]
+              end
+            end
           else
-            guess[i] = color
+            guess[i] = COLORS.index(guess[i]) + 1 > COLORS.length - 1 ? COLORS[0] : COLORS[COLORS.index(guess[i]) + 1]
           end
         end
-      end 
+      end
     end
 
   end

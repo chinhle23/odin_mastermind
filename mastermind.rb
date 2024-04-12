@@ -11,7 +11,7 @@ module Mastermind
   # This houses the logics of the game
   class Game
     attr_accessor :guesses_remaining, :tries
-    attr_reader :players 
+    attr_reader :players
 
     def initialize(player1, player2)
       @guesses_remaining = 12
@@ -23,42 +23,10 @@ module Mastermind
       @players[0].choose_role
       if @players[0].role == ROLES[1]
         @players[1].randomize_secret_code
-
-        loop do
-          @players[0].guess_colors(@players[0].guess)
-          if human_correct_guess?
-            puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
-            return
-          elsif @guesses_remaining < 1
-            puts "Game over. You ran out of guesses(#{@tries})."
-            puts "The code was #{@players[1].secret_code}"
-            return
-          else
-            give_guess_result
-            @players[1].display_clue(@players[1].secret_code, @players[0].guess)
-            @players[0].guess = []
-            @players[1].clue = []
-          end
-        end
+        human_guesser_path
       else
         @players[0].build_secrect_code(@players[0].secret_code)
-
-        loop do
-          @players[1].guess_colors(@players[1].guess, @players[0].previous_clue)
-          if computer_correct_guess?
-            puts "Computer guessed correctly (#{@players[0].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
-            return
-          elsif @guesses_remaining < 1
-            puts "Game over. You ran out of guesses(#{@tries})."
-            puts "The code was #{@players[0].secret_code}"
-            return
-          else
-            give_guess_result
-            @players[0].display_clue(@players[0].secret_code, @players[1].guess)
-            @players[0].previous_clue = @players[0].clue
-            @players[0].clue = []
-          end
-        end
+        computer_guesser_path
       end
     end
 
@@ -72,6 +40,44 @@ module Mastermind
 
     def computer_correct_guess?
       @players[1].guess == @players[0].secret_code
+    end
+
+    def human_guesser_path
+      loop do
+        @players[0].guess_colors(@players[0].guess)
+        if human_correct_guess?
+          puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
+          return
+        elsif @guesses_remaining < 1
+          puts "Game over. You ran out of guesses(#{@tries})."
+          puts "The code was #{@players[1].secret_code}"
+          return
+        else
+          give_guess_result
+          @players[1].display_clue(@players[1].secret_code, @players[0].guess)
+          @players[0].guess = []
+          @players[1].clue = []
+        end
+      end
+    end
+
+    def computer_guesser_path
+      loop do
+        @players[1].guess_colors(@players[1].guess, @players[0].previous_clue)
+        if computer_correct_guess?
+          puts "Computer guessed correctly (#{@players[0].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
+          return
+        elsif @guesses_remaining < 1
+          puts "Game over. You ran out of guesses(#{@tries})."
+          puts "The code was #{@players[0].secret_code}"
+          return
+        else
+          give_guess_result
+          @players[0].display_clue(@players[0].secret_code, @players[1].guess)
+          @players[0].previous_clue = @players[0].clue
+          @players[0].clue = []
+        end
+      end
     end
 
     def give_guess_result
@@ -185,7 +191,7 @@ module Mastermind
           raise unless COLORS.include?(choice)
         rescue StandardError
           puts 'Invalid input! Try again...'
-        else 
+        else
           arr.push(choice)
           i += 1
           break if i == 5
@@ -222,17 +228,7 @@ module Mastermind
       if clue == []
         guess.replace(%w[red orange yellow green])
       else
-        clue.each_index do |i|
-          if clue[i] == CLUES[0]
-            @possible_guesses.select! { |item| item[i] == guess[i] }
-          elsif clue[i] == CLUES[1] && !clue.include?(CLUES[0])
-            @possible_guesses.reject! { |item| item.include?(guess[i]) }
-          elsif clue[i] == CLUES[1]
-            @possible_guesses.reject! { |item| item[i] == guess[i] }
-          else
-            @possible_guesses.select! { |item| item[i] != guess[i] && item.include?(guess[i]) }
-          end
-        end
+        decipher_clue(guess, clue)
         guess.replace(@possible_guesses[0])
       end
     end
@@ -248,6 +244,20 @@ module Mastermind
               possible_guess = []
             end
           end
+        end
+      end
+    end
+
+    def decipher_clue(guess, clue)
+      clue.each_index do |i|
+        if clue[i] == CLUES[0]
+          @possible_guesses.select! { |item| item[i] == guess[i] }
+        elsif clue[i] == CLUES[1] && !clue.include?(CLUES[0])
+          @possible_guesses.reject! { |item| item.include?(guess[i]) }
+        elsif clue[i] == CLUES[1]
+          @possible_guesses.reject! { |item| item[i] == guess[i] }
+        else
+          @possible_guesses.select! { |item| item[i] != guess[i] && item.include?(guess[i]) }
         end
       end
     end

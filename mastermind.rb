@@ -3,17 +3,19 @@ require 'pry-byebug'
 
 # This houses the components of the Mastermind game
 module Mastermind
-  COLORS = ["red", "orange", "yellow", "green", "blue", "violet"]
-  ROLES = ["creator", "guesser"]
-  CLUES = ["O", "X", "C"]
+  COLORS = %w[red orange yellow green blue violet].freeze
+  ROLES = %w[creator guesser].freeze
+  CLUES = %w[O X C].freeze
+
+  # This houses the logics of the game
   class Game
     attr_accessor :guesses_remaining, :tries
     attr_reader :players 
 
-    def initialize(player_1, player_2)
+    def initialize(player1, player2)
       @guesses_remaining = 12
       @tries = 0
-      @players = [player_1.new(self), player_2.new(self)]
+      @players = [player1.new(self), player2.new(self)]
     end
 
     def play
@@ -31,7 +33,7 @@ module Mastermind
             return
           else
             give_guess_result
-            @players[1].give_clue(@players[1].secret_code, @players[0].guess)
+            @players[1].display_clue(@players[1].secret_code, @players[0].guess)
             @players[0].guess = []
             @players[1].clue = []
           end
@@ -49,7 +51,7 @@ module Mastermind
             return
           else
             give_guess_result
-            @players[0].give_clue(@players[0].secret_code, @players[1].guess)
+            @players[0].display_clue(@players[0].secret_code, @players[1].guess)
             @players[0].previous_clue = @players[0].clue
             @players[0].clue = []
           end
@@ -83,35 +85,50 @@ module Mastermind
       @secret_code = []
       @guess = []
       @clue = []
+      @incorrect = { guess: [], secret_code: [] }
     end
 
-    def give_clue(secret_code, guess)
-      incorrect = {guess: [], secret_code: []}
+    def display_clue(secret_code, guess)
+      build_clue(secret_code, guess)
 
-      # looks for matches first then include incorrect guesses in the 'incorrect' hash
-      guess.each_index do |i| 
-        if guess[i] == secret_code[i]
-          @clue.push(CLUES[0])
-        else
-          @clue.push(CLUES[1])
-          incorrect[:guess][i] = guess[i]
-          incorrect[:secret_code][i] = secret_code[i]
-        end
-      end
-
-      # looks for colors in the wrong positions
-      incorrect[:guess].each_index do |i|
-        if incorrect[:secret_code].include?(incorrect[:guess][i]) && incorrect[:guess][i] != nil
-          @clue[i] = CLUES[2]
-        end
-      end
-
-      puts "---------------------------------------"
+      puts '---------------------------------------'
       puts "Here's a clue: #{@clue}"
-      puts "O - exact match"
-      puts "X - wrong color"
-      puts "C - correct color, wrong position"
-      puts "---------------------------------------"
+      puts 'O - exact match'
+      puts 'X - wrong color'
+      puts 'C - correct color, wrong position'
+      puts '---------------------------------------'
+    end
+  end
+
+  private
+
+  attr_accessor :incorrect
+
+  def build_clue(secret_code, guess)
+    @incorrect = { guess: [], secret_code: [] }
+
+    # looks for matches first then include incorrect guesses in the 'incorrect' hash
+    exact_match_clue(secret_code, guess)
+
+    # looks for colors in the wrong positions
+    wrong_position_clue
+  end
+
+  def exact_match_clue(secret_code, guess)
+    guess.each_index do |i|
+      if guess[i] == secret_code[i]
+        @clue.push(CLUES[0])
+      else
+        @clue.push(CLUES[1])
+        @incorrect[:guess][i] = guess[i]
+        @incorrect[:secret_code][i] = secret_code[i]
+      end
+    end
+  end
+
+  def wrong_position_clue
+    incorrect[:guess].each_index do |i|
+      @clue[i] = CLUES[2] if @incorrect[:secret_code].include?(@incorrect[:guess][i]) && !@incorrect[:guess][i].nil?
     end
   end
 

@@ -223,9 +223,11 @@ module Mastermind
         guess.replace(%w[red orange yellow green])
       else
         clue.each_index do |i|
-          if clue[i] == 'O'
+          if clue[i] == CLUES[0]
             @possible_guesses.select! { |item| item[i] == guess[i] }
-          elsif clue[i] == 'X'
+          elsif clue[i] == CLUES[1] && !clue.include?(CLUES[0])
+            @possible_guesses.reject! { |item| item.include?(guess[i]) }
+          elsif clue[i] == CLUES[1]
             @possible_guesses.reject! { |item| item[i] == guess[i] }
           else
             @possible_guesses.select! { |item| item[i] != guess[i] && item.include?(guess[i]) }

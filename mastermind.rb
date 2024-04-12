@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'pry-byebug'
 
 # This houses the components of the Mastermind game
@@ -21,13 +22,14 @@ module Mastermind
     def play
       @players[0].choose_role
       if @players[0].role == ROLES[1]
-        @players[1].randomize_secret_code 
+        @players[1].randomize_secret_code
+
         loop do
           @players[0].guess_colors(@players[0].guess)
           if human_correct_guess?
             puts "You guessed correctly (#{@players[1].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
             return
-          elsif @guesses_remaining == 0
+          elsif @guesses_remaining < 1
             puts "Game over. You ran out of guesses(#{@tries})."
             puts "The code was #{@players[1].secret_code}"
             return
@@ -40,12 +42,13 @@ module Mastermind
         end
       else
         @players[0].build_secrect_code(@players[0].secret_code)
+
         loop do
-          @players[1].guess_colors(@players[0].secret_code, @players[1].guess, @players[0].previous_clue)
+          @players[1].guess_colors(@players[1].guess, @players[0].previous_clue)
           if computer_correct_guess?
             puts "Computer guessed correctly (#{@players[0].secret_code}) in #{@tries} #{@tries > 1 ? 'tries' : 'try'}"
             return
-          elsif @guesses_remaining == 0
+          elsif @guesses_remaining < 1
             puts "Game over. You ran out of guesses(#{@tries})."
             puts "The code was #{@players[0].secret_code}"
             return
@@ -72,10 +75,14 @@ module Mastermind
     end
 
     def give_guess_result
-      puts "#{@players[0].role == ROLES[1] ? "Your guess: #{@players[0].guess}" : "Computer's guess: #{@players[1].guess}"} is incorrect. (#{@guesses_remaining} #{@guesses_remaining > 1 ? 'guesses' : 'guess'} remaining)"
+      human_player_guess = "Your guess: #{@players[0].guess}"
+      computer_player_guess = "Computer's guess: #{@players[1].guess}"
+      puts "#{@players[0].role == ROLES[1] ? human_player_guess : computer_player_guess} is incorrect."
+      puts "(#{@guesses_remaining} #{@guesses_remaining > 1 ? 'guesses' : 'guess'} remaining)"
     end
   end
 
+  # This houses the basic components of any player
   class Player
     attr_accessor :role, :secret_code, :guess, :clue
 
@@ -132,6 +139,7 @@ module Mastermind
     end
   end
 
+  # This houses the components specific to a human player
   class HumanPlayer < Player
     attr_accessor :previous_clue
 
@@ -148,12 +156,12 @@ module Mastermind
           raise unless ROLES.include?(role)
         rescue StandardError
           puts 'Invalid input! Try again...'
-        else 
+        else
           @game.players[0].role = role
           @game.players[1].role = role == ROLES[0] ? ROLES[1] : ROLES[0]
           break
         end
-      end 
+      end
     end
 
     def guess_colors(arr)
@@ -186,42 +194,61 @@ module Mastermind
     end
   end
 
+  # This houses the components specific to a computer player
   class ComputerPlayer < Player
+    attr_accessor :possible_guesses
+
+    def initialize(game)
+      super
+      @possible_guesses = []
+    end
+
     def randomize_secret_code
       4.times do
         @secret_code.push(COLORS[rand(0..5)])
       end
     end
 
-    def guess_colors(secrect_code, guess, clue)
-      build_color_combo(secrect_code, guess, clue)
+    def guess_colors(guess, clue)
+      build_color_combo(guess, clue)
       @game.tries += 1
       @game.guesses_remaining -= 1
     end
 
     private
 
-    def build_color_combo(secrect_code, guess, clue)
+    def build_color_combo(guess, clue)
+      build_possible_guesses
       if clue == []
-        2.times { guess.push(COLORS[0]) }
-        2.times { guess.push(COLORS[1]) }
-      else  
+        guess.replace(%w[red orange yellow green])
+      else
         clue.each_index do |i|
-          if clue[i] == "O"
-            guess[i] = secrect_code[i]
-          elsif clue[i] == "C"
-            clue.each_index do |j|
-              if clue[j] != "O" && guess[j] != guess[i]
-                guess[j] = guess[i]
-              end
-            end
+          if clue[i] == 'O'
+            @possible_guesses.select! { |item| item[i] == guess[i] }
+          elsif clue[i] == 'X'
+            @possible_guesses.reject! { |item| item[i] == guess[i] }
           else
-            guess[i] = COLORS.index(guess[i]) + 1 > COLORS.length - 1 ? COLORS[0] : COLORS[COLORS.index(guess[i]) + 1]
+            @possible_guesses.select! { |item| item[i] != guess[i] && item.include?(guess[i]) }
+          end
+        end
+        guess.replace(@possible_guesses[0])
+      end
+    end
+
+    def build_possible_guesses
+      possible_guess = []
+      COLORS.each_index do |i|
+        COLORS.each_index do |j|
+          COLORS.each_index do |k|
+            COLORS.each_index do |l|
+              possible_guess.push(COLORS[l], COLORS[k], COLORS[j], COLORS[i])
+              @possible_guesses.push(possible_guess)
+              possible_guess = []
+            end
           end
         end
       end
     end
-
   end
 end
 
